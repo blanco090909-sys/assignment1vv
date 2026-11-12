@@ -1,47 +1,25 @@
-import pandas as pd
-import matplotlib.pyplot as plt
 import streamlit as st
+import pandas as pd
 
-st.set_page_config(page_title="Admissions Explorer", page_icon="🎓")
-st.title("🎓 Graduate Admissions Explorer")
-st.write("Explore how test scores and CGPA relate to the chance of admission.")
+st.set_page_config(page_title="Qahwa Corner Dashboard", layout="wide")
+st.title("☕ Qahwa Corner – Sales Dashboard")
 
+df = pd.read_csv("cafe_sales.csv")
+df["date"] = pd.to_datetime(df["date"])
 
-@st.cache_data
-def load_data():
-    df = pd.read_csv("Admission_Predict_Ver1.1.csv")
-    df.columns = df.columns.str.strip()  # some column names end with a space
-    return df
+branches = ["All"] + sorted(df["branch"].unique().tolist())
+selected = st.selectbox("Select Branch", branches)
 
-
-df = load_data()
-
-# Sidebar filters
-st.sidebar.header("Filters")
-min_cgpa = st.sidebar.slider("Minimum CGPA", 6.5, 10.0, 8.0, 0.1)
-research = st.sidebar.selectbox("Research experience", ["All", "Yes", "No"])
-
-view = df[df["CGPA"] >= min_cgpa]
-if research != "All":
-    view = view[view["Research"] == (1 if research == "Yes" else 0)]
-
-# Key numbers
-c1, c2, c3 = st.columns(3)
-c1.metric("Students", len(view))
-if len(view) > 0:
-    c2.metric("Average CGPA", f"{view['CGPA'].mean():.2f}")
-    c3.metric("Average chance", f"{view['Chance of Admit'].mean():.0%}")
+if selected != "All":
+    data = df[df["branch"] == selected]
 else:
-    st.warning("No students match these filters. Lower the minimum CGPA.")
+    data = df
 
-# Chart
-fig, ax = plt.subplots()
-ax.scatter(view["GRE Score"], view["Chance of Admit"], alpha=0.6)
-ax.set_xlabel("GRE Score")
-ax.set_ylabel("Chance of Admit")
-ax.set_title("GRE Score vs Chance of Admit")
-st.pyplot(fig)
+total_rev = data["total_sar"].sum()
+st.metric("Total Revenue (SAR)", f"{total_rev:,.0f}")
 
-# Data table
-st.subheader("First 20 matching students")
-st.dataframe(view.head(20))
+product_rev = data.groupby("product")["total_sar"].sum().sort_values(ascending=False)
+st.subheader("Revenue by Product")
+st.bar_chart(product_rev)
+
+st.caption("Data: Qahwa Corner – January to June 2026")
